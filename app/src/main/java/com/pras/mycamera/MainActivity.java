@@ -9,7 +9,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -33,22 +35,7 @@ public class MainActivity extends AppCompatActivity {
             new ActivityResultContracts.TakePicture(),
             result -> {
                 if (result) {
-                    fileName.setText(photoUri.getPath());
-                    Bitmap bitmap;
-                    ContentResolver contentResolver = getContentResolver();
-                    try {
-                        if (Build.VERSION.SDK_INT < 28) {
-                            bitmap = MediaStore.Images.Media.getBitmap(contentResolver, photoUri);
-                        } else {
-                            ImageDecoder.Source source = ImageDecoder.createSource(contentResolver, photoUri);
-                            bitmap = ImageDecoder.decodeBitmap(source);
-                        }
-                        if (bitmap != null) {
-                            imResult.setImageBitmap(bitmap);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    showImageConfirmationDialog();
                 }
             }
     );
@@ -104,17 +91,71 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
-    private void showAlertDialog() {
+    private void showImageConfirmationDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         LayoutInflater inflater = getLayoutInflater();
+        try {
+            View layout = inflater.inflate(R.layout.dialog_image_confirmation, null);
+            ImageView imageConfirm = layout.findViewById(R.id.imgConfirmation);
+            Bitmap bitmap = getImageBitmap(photoUri);
+            imageConfirm.setImageBitmap(bitmap);
+            builder.setView(layout)
+                    .setPositiveButton("Ya", (dialogInterface, i) -> {
+                        setImage();
+                    })
+                    .setNegativeButton("Tidak", (dialogInterface, i) -> {
+                        deleteImage();
+                    });
+            builder.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        builder.setView(inflater.inflate(R.layout.dialog_image_confirmation, null))
-                .setPositiveButton("Ya", (dialogInterface, i) -> {
+    }
 
-                })
-                .setNegativeButton("Tidak", (dialogInterface, i) -> {
+    private void setImage() {
+        fileName.setText(photoUri.getPath());
+        Bitmap bitmap;
+        try {
+            bitmap = getImageBitmap(photoUri);
+            if (bitmap != null) {
+                imResult.setImageBitmap(bitmap);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-                });
-        builder.show();
+    private void deleteImage() {
+        try {
+            Uri savedPhotoUri = photoUri;
+            File fileToDelete = new File(photoUri.getPath());
+            if (fileToDelete.exists()) {
+                if (fileToDelete.delete()) {
+                    if (fileToDelete.exists()) {
+                        fileToDelete.getCanonicalFile().delete();
+                        if (fileToDelete.exists()) {
+                            getApplicationContext().deleteFile(fileToDelete.getName());
+                        }
+                    }
+                    photoUri = null;
+                    Log.e("", "File Deleted " + savedPhotoUri.getPath());
+                } else {
+                    Log.e("", "File not Deleted " + savedPhotoUri.getPath());
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Bitmap getImageBitmap(Uri uri) throws IOException {
+        ContentResolver contentResolver = getContentResolver();
+        if (Build.VERSION.SDK_INT < 28) {
+            return MediaStore.Images.Media.getBitmap(contentResolver, uri);
+        } else {
+            ImageDecoder.Source source = ImageDecoder.createSource(contentResolver, uri);
+            return ImageDecoder.decodeBitmap(source);
+        }
     }
 }
