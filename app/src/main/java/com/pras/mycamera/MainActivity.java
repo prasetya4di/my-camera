@@ -24,7 +24,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
-    private Button btnAmbilFoto;
     private TextView fileName;
     private ImageView imResult;
     private Uri photoUri;
@@ -57,11 +56,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btnAmbilFoto = findViewById(R.id.btnTakePicture);
+        Button btnTakePicture = findViewById(R.id.btnTakePicture);
         fileName = findViewById(R.id.txtFile);
         imResult = findViewById(R.id.imgResult);
 
-        btnAmbilFoto.setOnClickListener(view -> {
+        btnTakePicture.setOnClickListener(view -> {
             try {
                 dispatchTakePictureIntent();
             } catch (Exception e) {
@@ -82,11 +81,11 @@ public class MainActivity extends AppCompatActivity {
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
-                Uri photoUri = FileProvider.getUriForFile(this,
+                Uri mPhotoUri = FileProvider.getUriForFile(this,
                         "com.prasetya.mycamera.fileprovider",
                         photoFile);
-                this.photoUri = photoUri;
-                takePicture.launch(photoUri);
+                this.photoUri = mPhotoUri;
+                takePicture.launch(mPhotoUri);
             }
         }
     }
@@ -96,12 +95,10 @@ public class MainActivity extends AppCompatActivity {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
+        return File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
                 storageDir      /* directory */
         );
-
-        return image;
     }
 }
